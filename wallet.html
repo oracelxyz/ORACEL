@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>ORACEL – Wallet</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+body { font-family: 'Inter', sans-serif; }
+h1,h2,h3 { font-family: 'Space Grotesk', sans-serif; }
+</style>
+</head>
+
+<body class="text-white overflow-x-hidden">
+
+<!-- BG -->
+<div class="fixed inset-0 -z-10">
+  <div class="absolute inset-0 bg-gradient-to-br from-[#040817] via-[#0A1440] to-[#020617]"></div>
+  <div class="absolute inset-0 opacity-[0.25] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
+</div>
+
+<div class="flex min-h-screen">
+
+<!-- SIDEBAR -->
+<aside class="w-64 bg-black/40 backdrop-blur-xl border-r border-blue-400/20 hidden md:flex flex-col justify-between">
+  <div>
+    <div class="p-6 flex items-center gap-3">
+      <img src="logo-oracel.png" class="w-9 h-9 rounded-lg">
+      <span class="text-lg font-semibold tracking-widest text-blue-400">ORACEL</span>
+    </div>
+
+    <nav class="px-4 space-y-1 text-sm">
+      <a href="index.html" class="flex px-4 py-3 rounded-xl hover:bg-blue-500/10">Overview</a>
+      <a href="earn.html" class="flex px-4 py-3 rounded-xl hover:bg-blue-500/10">Earn</a>
+      <a href="create-mission.html" class="flex px-4 py-3 rounded-xl hover:bg-blue-500/10">Create Mission</a>
+      <a href="badge.html" class="flex px-4 py-3 rounded-xl hover:bg-blue-500/10">Badge</a>
+      <a href="leaderboard.html" class="flex px-4 py-3 rounded-xl hover:bg-blue-500/10">Leaderboard</a>
+      <a class="flex px-4 py-3 rounded-xl opacity-50">Claim (Soon)</a>
+      <a class="flex px-4 py-3 rounded-xl bg-blue-500/10 text-blue-400">Wallet</a>
+      <a href="profile.html" class="flex px-4 py-3 rounded-xl hover:bg-blue-500/10">Profile</a>
+      <a href="raffle.html" class="flex px-4 py-3 rounded-xl hover:bg-blue-500/10">Raffle</a>
+    </nav>
+  </div>
+
+  <div class="p-4 border-t border-blue-400/10">
+    <button id="logoutBtn"
+      class="w-full py-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20">
+      Logout
+    </button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="flex-1 p-6 space-y-10">
+
+<header class="flex justify-between items-center">
+  <h1 class="text-2xl font-semibold">Wallet</h1>
+  <span class="text-xs tracking-widest text-blue-300/70 uppercase">
+    Phantom Connected
+  </span>
+</header>
+
+<!-- ADDRESS -->
+<section class="max-w-4xl mx-auto bg-black/40 backdrop-blur-xl rounded-3xl border border-blue-400/20 p-6">
+  <p class="text-xs text-gray-400">Wallet Address</p>
+  <p id="walletAddress" class="mt-1 text-sm text-blue-400 tracking-widest">
+    Not Connected
+  </p>
+</section>
+
+<!-- BALANCE -->
+<section class="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-6">
+
+<div class="bg-black/40 backdrop-blur-xl rounded-3xl p-6 border border-blue-400/20">
+  <p class="text-xs text-gray-400">SOL Balance</p>
+  <h2 class="text-2xl font-bold mt-1">—</h2>
+  <p class="text-xs text-gray-500 mt-1">Coming Soon</p>
+</div>
+
+<div class="bg-black/40 backdrop-blur-xl rounded-3xl p-6 border border-blue-400/20">
+  <p class="text-xs text-gray-400">USDT Balance</p>
+  <h2 class="text-2xl font-bold mt-1">—</h2>
+  <p class="text-xs text-gray-500 mt-1">Coming Soon</p>
+</div>
+
+<div class="bg-black/40 backdrop-blur-xl rounded-3xl p-6 border border-blue-400/30 shadow-[0_0_40px_rgba(59,130,246,0.25)]">
+  <p class="text-xs text-gray-400">OCE POINT</p>
+  <h2 id="ocePoint" class="text-2xl font-bold mt-1 text-blue-400">0</h2>
+  <p class="text-xs text-gray-500 mt-1">Earned from missions</p>
+</div>
+
+<div class="bg-black/40 backdrop-blur-xl rounded-3xl p-6 border border-yellow-400/30 shadow-[0_0_40px_rgba(250,204,21,0.3)]">
+  <p class="text-xs text-gray-400">OCE PREMIUM</p>
+  <h2 id="ocePremium" class="text-2xl font-bold mt-1 text-yellow-300">0</h2>
+  <p class="text-xs text-gray-500 mt-1">Mission credits</p>
+</div>
+
+</section>
+
+</main>
+</div>
+
+<!-- 🔥 FIREBASE + PHANTOM -->
+<script type="module">
+import { auth, db } from "./firebase.js"
+import { doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"
+
+const walletText = document.getElementById("walletAddress")
+const ocePoint = document.getElementById("ocePoint")
+const ocePremium = document.getElementById("ocePremium")
+
+onAuthStateChanged(auth, async user => {
+  if (!user) return location.href = "login.html"
+
+  const ref = doc(db,"users",user.uid)
+  const snap = await getDoc(ref)
+
+  if (snap.exists()) {
+    const d = snap.data()
+    ocePoint.innerText = d.point || 0
+    ocePremium.innerText = d.premium || 0
+
+    if (d.wallet) {
+      walletText.innerText = short(d.wallet)
+    } else {
+      connectWallet(user, ref)
+    }
+  }
+})
+
+async function connectWallet(user, ref) {
+  if (!window.solana?.isPhantom) {
+    walletText.innerText = "Phantom not installed"
+    return
+  }
+
+  const res = await window.solana.connect()
+  const address = res.publicKey.toString()
+
+  await updateDoc(ref,{ wallet: address })
+  walletText.innerText = short(address)
+}
+
+function short(addr) {
+  return addr.slice(0,4)+"…"+addr.slice(-4)
+}
+
+logoutBtn.onclick = async () => {
+  await signOut(auth)
+  location.href = "login.html"
+}
+</script>
+
+</body>
+</html>

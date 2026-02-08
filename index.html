@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ORACEL | Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; }
+  </style>
+</head>
+
+<body class="text-white overflow-x-hidden">
+
+<!-- 🌌 SPACE BACKGROUND -->
+<div class="fixed inset-0 -z-10 overflow-hidden">
+  <div class="absolute inset-0 bg-gradient-to-br from-[#040817] via-[#0A1440] to-[#020617]"></div>
+  <div class="absolute inset-0 opacity-[0.25] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
+</div>
+
+<div class="flex min-h-screen">
+
+  <!-- 🧭 SIDEBAR -->
+  <aside class="w-64 bg-black/40 backdrop-blur-xl border-r border-blue-400/20 hidden md:flex flex-col justify-between">
+
+    <div>
+      <!-- LOGO -->
+      <div class="p-6 flex items-center gap-3">
+        <div class="relative">
+          <img src="logo-oracel.png" class="w-9 h-9 rounded-lg relative z-10" alt="ORACEL">
+          <div class="absolute inset-0 blur-xl bg-blue-500/40"></div>
+        </div>
+        <span class="text-lg font-semibold tracking-widest text-blue-400">
+          ORACEL
+        </span>
+      </div>
+
+      <!-- NAV -->
+      <nav class="px-4 space-y-1 text-sm">
+        <a href="index.html" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-500/10 text-blue-400">
+          Overview
+        </a>
+        <a href="earn.html" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-blue-500/10 hover:text-blue-400 transition">
+          Earn
+        </a>
+        <a href="create-mission.html" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-blue-500/10 hover:text-blue-400 transition">
+          Create Mission
+        </a>
+        <a href="badge.html" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-blue-500/10 hover:text-blue-400 transition">
+          Badge
+        </a>
+        <a href="leaderboard.html" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-blue-500/10 hover:text-blue-400 transition">
+          Leaderboard
+        </a>
+        <div class="flex items-center gap-3 px-4 py-3 rounded-xl opacity-50 cursor-not-allowed">
+          Claim (Soon)
+        </div>
+        <a href="wallet.html" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-blue-500/10 hover:text-blue-400 transition">
+          Wallet
+        </a>
+        <a href="profile.html" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-blue-500/10 hover:text-blue-400 transition">
+          Profile
+        </a>
+        <a href="raffle.html" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-blue-500/10 hover:text-blue-400 transition">
+          Raffle
+        </a>
+      </nav>
+    </div>
+
+    <!-- LOGOUT -->
+    <div class="p-4 border-t border-blue-400/10">
+      <button id="logoutBtn" class="w-full py-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition">
+        Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- 🧠 MAIN -->
+  <main class="flex-1 p-6 space-y-8">
+
+    <!-- HEADER -->
+    <header class="flex justify-between items-center">
+      <h1 class="text-2xl font-semibold tracking-wide">
+        Overview
+      </h1>
+      <div id="walletAddress" class="text-xs text-blue-300/70 tracking-widest uppercase">
+        Phantom • ----
+      </div>
+    </header>
+
+    <!-- STATS -->
+    <section class="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div class="bg-white/5 backdrop-blur-xl p-5 rounded-2xl border border-blue-400/20">
+        <p class="text-xs uppercase tracking-widest text-blue-300/70">OCE Point</p>
+        <h2 id="ocePoint" class="text-3xl font-bold text-blue-400 mt-1">0</h2>
+      </div>
+
+      <div class="bg-white/5 backdrop-blur-xl p-5 rounded-2xl border border-blue-400/20">
+        <p class="text-xs uppercase tracking-widest text-blue-300/70">OCE Premium</p>
+        <h2 id="ocePremium" class="text-3xl font-bold mt-1">0</h2>
+      </div>
+
+      <div class="bg-white/5 backdrop-blur-xl p-5 rounded-2xl border border-blue-400/20">
+        <p class="text-xs uppercase tracking-widest text-blue-300/70">Leaderboard Rank</p>
+        <h2 id="leaderRank" class="text-3xl font-bold mt-1">-</h2>
+      </div>
+
+      <div class="bg-white/5 backdrop-blur-xl p-5 rounded-2xl border border-blue-400/20">
+        <p class="text-xs uppercase tracking-widest text-blue-300/70">Raffle Pool</p>
+        <h2 id="rafflePool" class="text-3xl font-bold text-blue-400 mt-1">0 SOL</h2>
+      </div>
+    </section>
+
+    <!-- ACTIVITY -->
+    <section class="bg-white/5 backdrop-blur-xl rounded-2xl border border-blue-400/20 p-6">
+      <h2 class="text-lg font-semibold mb-4 tracking-wide">
+        Recent Activity
+      </h2>
+
+      <div id="activityLog" class="space-y-4 text-sm text-gray-300">
+        <p>No activity yet.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- Firebase Logic -->
+<script type="module" src="firebase.js"></script>
+</body>
+</html>

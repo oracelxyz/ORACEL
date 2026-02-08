@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>ORACEL Admin Panel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body { font-family: 'Inter', sans-serif; background:#0B0E13; color:white; }
+h1,h2 { font-family: 'Space Grotesk', sans-serif; }
+.nav-btn{width:100%;padding:12px;border-radius:12px;text-align:left;cursor:pointer}
+.nav-btn.active,.nav-btn:hover{background:rgba(59,130,246,.15);color:#60a5fa}
+.card{background:#111827;padding:20px;border-radius:16px;border:1px solid rgba(59,130,246,.15)}
+.input{width:100%;padding:10px;border-radius:10px;background:#0F172A;border:1px solid rgba(59,130,246,.2);color:white}
+.btn-primary{background:#2563EB;padding:10px 16px;border-radius:10px;color:white;cursor:pointer}
+.table th, .table td {padding:8px;border-bottom:1px solid rgba(96,165,250,.2);}
+</style>
+</head>
+
+<body>
+
+<!-- BG -->
+<div class="fixed inset-0 -z-10">
+  <div class="absolute inset-0 bg-gradient-to-br from-[#050B1A] via-[#0B1230] to-[#020617]"></div>
+  <div class="absolute inset-0 opacity-30 bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
+</div>
+
+<div class="flex min-h-screen">
+
+<!-- SIDEBAR -->
+<aside class="w-64 bg-[#0F1420] border-r border-blue-500/10 flex flex-col">
+  <div class="p-6 flex items-center gap-3">
+    <img src="logo-oracel.png" class="w-8 h-8">
+    <span class="text-blue-400 font-semibold">ORACEL</span>
+  </div>
+
+  <nav class="px-4 space-y-1 text-sm">
+    <button onclick="showPage('dashboard',this)" class="nav-btn active">Dashboard</button>
+    <button onclick="showPage('users',this)" class="nav-btn">Users</button>
+    <button onclick="showPage('missions',this)" class="nav-btn">Missions</button>
+    <button onclick="showPage('badges',this)" class="nav-btn">Badges</button>
+    <button onclick="showPage('revenue',this)" class="nav-btn">Revenue</button>
+    <button onclick="showPage('settings',this)" class="nav-btn">Settings</button>
+  </nav>
+
+  <div class="mt-auto p-4">
+    <button onclick="logout()" class="w-full py-2 rounded-lg bg-red-500/10 text-red-400">Logout</button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="flex-1 p-6 space-y-6">
+
+<header class="flex justify-between">
+  <h1 id="pageTitle" class="text-xl font-semibold">Dashboard</h1>
+  <span class="text-sm text-blue-400" id="adminEmail">Not Logged In</span>
+</header>
+
+<!-- LOGIN PANEL -->
+<section id="loginPanel" class="page card">
+  <h2 class="font-semibold mb-4">Admin Login</h2>
+  <input id="adminEmailInput" class="input mb-3" placeholder="Email" type="email">
+  <input id="adminPassInput" class="input mb-3" placeholder="Password" type="password">
+  <button id="adminLoginBtn" class="btn-primary w-full">Login</button>
+  <p id="loginMsg" class="text-xs text-red-400 mt-2"></p>
+</section>
+
+<!-- DASHBOARD -->
+<section id="dashboard" class="page hidden">
+  <div class="grid md:grid-cols-4 gap-4">
+    <div class="card"><p>Total Users</p><h2 id="totalUsers">0</h2></div>
+    <div class="card"><p>Total SOL</p><h2 id="totalSol">0</h2></div>
+    <div class="card"><p>Premium Sold</p><h2 id="premiumSold">0</h2></div>
+    <div class="card"><p>Raffle Pool</p><h2 id="rafflePool">0 SOL</h2></div>
+  </div>
+
+  <div class="mt-6 card">
+    <canvas id="revenueChart"></canvas>
+  </div>
+</section>
+
+<!-- USERS -->
+<section id="users" class="page hidden">
+  <div class="card overflow-x-auto">
+    <h2 class="mb-4 font-semibold">Users</h2>
+    <table class="table w-full text-sm">
+      <thead class="text-gray-400">
+        <tr>
+          <th>Wallet</th><th>Discord</th><th>Telegram</th><th>Points</th><th>Badges</th>
+        </tr>
+      </thead>
+      <tbody id="userTable"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- MISSIONS -->
+<section id="missions" class="page hidden">
+  <div class="card space-y-3">
+    <h2 class="font-semibold">Mission Settings</h2>
+    <input id="missionPrice" class="input" placeholder="Premium Price SOL">
+    <button onclick="saveMissionPrice()" class="btn-primary">Save</button>
+    <h3 class="mt-4 font-semibold">Active Missions</h3>
+    <ul id="missionList" class="list-disc pl-6 space-y-1"></ul>
+  </div>
+</section>
+
+<!-- BADGES -->
+<section id="badges" class="page hidden">
+  <div class="card space-y-3">
+    <h2 class="font-semibold">Create Badge</h2>
+    <input id="badgeName" class="input" placeholder="Badge Name">
+    <input id="badgeTarget" class="input" placeholder="Target Points">
+    <input id="badgeFile" class="input" type="file" accept=".png,.svg">
+    <button onclick="saveBadge()" class="btn-primary">Save Badge</button>
+    <div id="badgeList" class="mt-3 space-y-2"></div>
+  </div>
+</section>
+
+<!-- REVENUE -->
+<section id="revenue" class="page hidden">
+  <div class="card">
+    <h2>Total Revenue</h2>
+    <p id="revenueTotal" class="text-blue-400 mt-2">0 SOL</p>
+    <h3 class="mt-4 font-semibold">Transactions</h3>
+    <ul id="transactionList" class="list-disc pl-6 space-y-1"></ul>
+  </div>
+</section>
+
+<!-- SETTINGS -->
+<section id="settings" class="page hidden">
+  <div class="card">
+    <h2>Admin Settings</h2>
+    <p class="text-gray-400 text-sm mt-2">Only verified admin email can access this panel.</p>
+  </div>
+</section>
+
+</main>
+</div>
+
+<script type="module">
+import { app, auth, db } from './firebase.js';
+import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { collection, addDoc, getDocs, doc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+// Elements
+const loginPanel = document.getElementById('loginPanel');
+const adminLoginBtn = document.getElementById('adminLoginBtn');
+const adminEmailInput = document.getElementById('adminEmailInput');
+const adminPassInput = document.getElementById('adminPassInput');
+const loginMsg = document.getElementById('loginMsg');
+const adminEmailSpan = document.getElementById('adminEmail');
+
+const badgeName = document.getElementById('badgeName');
+const badgeTarget = document.getElementById('badgeTarget');
+const badgeFile = document.getElementById('badgeFile');
+const badgeList = document.getElementById('badgeList');
+
+const userTable = document.getElementById('userTable');
+const missionPriceInput = document.getElementById('missionPrice');
+const missionList = document.getElementById('missionList');
+const revenueTotal = document.getElementById('revenueTotal');
+const transactionList = document.getElementById('transactionList');
+
+const storage = getStorage();
+
+// Login
+adminLoginBtn.onclick = async () => {
+  loginMsg.innerText = '';
+  try {
+    await signInWithEmailAndPassword(auth, adminEmailInput.value, adminPassInput.value);
+  } catch(err) {
+    loginMsg.innerText = 'Login failed: ' + err.message;
+  }
+};
+
+// Auth state
+onAuthStateChanged(auth, async user => {
+  if(user){
+    loginPanel.classList.add('hidden');
+    adminEmailSpan.innerText = user.email;
+    loadBadges();
+    loadUsers();
+    loadMissions();
+    loadRevenue();
+  } else {
+    loginPanel.classList.remove('hidden');
+    adminEmailSpan.innerText = 'Not Logged In';
+  }
+});
+
+// Logout
+window.logout = async () => { await signOut(auth); };
+
+// Save Badge
+window.saveBadge = async () => {
+  if(!badgeName.value || !badgeTarget.value || !badgeFile.files[0]) return alert('All fields required');
+  const file = badgeFile.files[0];
+  const storageRef = ref(storage, `badges/${file.name}`);
+  await uploadBytes(storageRef, file);
+  const url = await getDownloadURL(storageRef);
+  await addDoc(collection(db,'badges'),{name:badgeName.value,target:Number(badgeTarget.value),url});
+  badgeName.value=''; badgeTarget.value=''; badgeFile.value='';
+  loadBadges();
+};
+
+async function loadBadges(){
+  badgeList.innerHTML='';
+  const snap = await getDocs(collection(db,'badges'));
+  snap.forEach(docSnap=>{
+    const data = docSnap.data();
+    const div = document.createElement('div');
+    div.className='flex items-center gap-3 p-2 bg-[#111827] border border-blue-400/20 rounded-xl';
+    div.innerHTML=`<img src="${data.url}" class="w-10 h-10 rounded-lg"><span>${data.name} (Target: ${data.target})</span>`;
+    badgeList.appendChild(div);
+  });
+}
+
+// Users
+async function loadUsers(){
+  userTable.innerHTML='';
+  const snap = await getDocs(collection(db,'users'));
+  snap.forEach(docSnap=>{
+    const data = docSnap.data();
+    const tr = document.createElement('tr');
+    tr.innerHTML=`<td>${data.wallet}</td><td>${data.x || '-'}</td><td>${data.discord || '-'}</td><td>${data.telegram || '-'}</td><td>${data.points || 0}</td><td>${(data.badges||[]).join(', ')}</td>`;
+    userTable.appendChild(tr);
+  });
+}
+
+// Missions
+window.saveMissionPrice = async () => {
+  const price = Number(missionPriceInput.value);
+  if(!price) return alert('Enter a valid price');
+  const missionRef = doc(db,'settings','mission');
+  await updateDoc(missionRef,{premiumPrice:price});
+  alert('Mission price updated');
+};
+
+async function loadMissions(){
+  missionList.innerHTML='';
+  const snap = await getDocs(collection(db,'missions'));
+  snap.forEach(docSnap=>{
+    const data = docSnap.data();
+    const li = document.createElement('li');
+    li.textContent = `${data.url} - Created at ${data.createdAt?.toDate()?.toLocaleString()||'N/A'}`;
+    missionList.appendChild(li);
+  });
+}
+
+// Revenue
+async function loadRevenue(){
+  revenueTotal.innerText='0 SOL';
+  transactionList.innerHTML='';
+  const snap = await getDocs(collection(db,'transactions'));
+  let total=0;
+  snap.forEach(docSnap=>{
+    const data = docSnap.data();
+    total += data.amount || 0;
+    const li = document.createElement('li');
+    li.textContent = `${data.wallet} - ${data.amount} SOL - ${data.type || 'premium'} - ${data.createdAt?.toDate()?.toLocaleString()||'N/A'}`;
+    transactionList.appendChild(li);
+  });
+  revenueTotal.innerText=total+' SOL';
+}
+
+// Navigation
+window.showPage = (page,btn)=>{
+  document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
+  document.getElementById(page).classList.remove('hidden');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('pageTitle').innerText=page.toUpperCase();
+}
+
+// Dummy revenue chart
+new Chart(document.getElementById('revenueChart'),{
+  type:'line',
+  data:{labels:['Mon','Tue','Wed','Thu','Fri'],datasets:[{label:'Revenue',data:[2,5,3,8,6],borderColor:'#60A5FA',backgroundColor:'rgba(96,165,250,0.2)'}]},
+  options:{responsive:true,maintainAspectRatio:false}
+});
+</script>
+
+<script type="module" src="firebase.js"></script>
+</body>
+</html>

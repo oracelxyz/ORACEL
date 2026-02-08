@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>ORACEL – Badges</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+body { font-family: 'Inter', sans-serif; }
+h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; }
+.locked { opacity: 0.35; filter: grayscale(100%); }
+</style>
+</head>
+
+<body class="text-white overflow-x-hidden">
+
+<div class="fixed inset-0 -z-10">
+  <div class="absolute inset-0 bg-gradient-to-br from-[#040817] via-[#0A1440] to-[#020617]"></div>
+  <div class="absolute inset-0 opacity-[0.25] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
+</div>
+
+<div class="flex min-h-screen">
+
+  <aside class="w-64 bg-black/40 backdrop-blur-xl border-r border-blue-400/20 hidden md:flex flex-col justify-between">
+    <div>
+      <div class="p-6 flex items-center gap-3">
+        <img src="logo-oracel.png" class="w-9 h-9 rounded-lg">
+        <span class="text-lg font-semibold tracking-widest text-blue-400">ORACEL</span>
+      </div>
+
+      <nav class="px-4 space-y-1 text-sm">
+        <a href="index.html" class="flex px-4 py-3 rounded-xl hover:bg-blue-500/10">Overview</a>
+        <a href="earn.html" class="flex px-4 py-3 rounded-xl hover:bg-blue-500/10">Earn</a>
+        <a href="create-mission.html" class="flex px-4 py-3 rounded-xl hover:bg-blue-500/10">Create Mission</a>
+        <a class="flex px-4 py-3 rounded-xl bg-blue-500/10 text-blue-400">Badge</a>
+        <a href="leaderboard.html" class="flex px-4 py-3 rounded-xl hover:bg-blue-500/10">Leaderboard</a>
+        <a class="flex px-4 py-3 rounded-xl opacity-50">Claim (Soon)</a>
+        <a href="wallet.html" class="flex px-4 py-3 rounded-xl hover:bg-blue-500/10">Wallet</a>
+        <a href="profile.html" class="flex px-4 py-3 rounded-xl hover:bg-blue-500/10">Profile</a>
+        <a href="raffle.html" class="flex px-4 py-3 rounded-xl hover:bg-blue-500/10">Raffle</a>
+      </nav>
+    </div>
+  </aside>
+
+  <main class="flex-1 p-6 space-y-10">
+    <header class="flex justify-between items-center">
+      <h1 class="text-2xl font-semibold tracking-wide">Badges</h1>
+      <span id="walletStatus" class="text-xs tracking-widest text-blue-300/70 uppercase">
+        Wallet Not Connected
+      </span>
+    </header>
+
+    <p class="text-xs text-center text-gray-400 max-w-xl mx-auto">
+      Badges are assigned automatically based on activity or manually by admin.
+    </p>
+
+    <section id="badgeGrid" class="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+      <!-- Badge cards will be dynamically filled -->
+    </section>
+  </main>
+</div>
+
+<script type="module">
+import { app, auth, db } from './firebase.js';
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const badges = [
+  { id:"early_join", name:"Early Join", color:"blue", requirement:0 },
+  { id:"bronze", name:"Bronze", color:"orange", requirement:100 },
+  { id:"silver", name:"Silver", color:"white", requirement:500 },
+  { id:"gold", name:"Gold", color:"yellow", requirement:1000 },
+  { id:"oce_og", name:"OCE OG", color:"purple", requirement:0, special:true },
+  { id:"investor", name:"Investor", color:"green", requirement:1, premium:true }
+];
+
+let walletAddress = null;
+
+async function connectWallet() {
+  if (!window.solana) return alert("No Solana wallet detected!");
+  const resp = await window.solana.connect();
+  walletAddress = resp.publicKey.toString();
+  document.getElementById("walletStatus").innerText = walletAddress.slice(0,6)+"..."+walletAddress.slice(-4);
+
+  // Get Firebase custom token
+  const customToken = await fetch(`/api/getCustomToken?wallet=${walletAddress}`).then(r => r.text());
+  await signInWithCustomToken(auth, customToken);
+
+  // Load user badges
+  loadBadges();
+}
+
+async function loadBadges() {
+  const userRef = doc(db, "users", walletAddress);
+  const userSnap = await getDoc(userRef);
+  if (!userSnap.exists()) return;
+
+  const userData = userSnap.data();
+  const ocePoints = userData.ocePoints || 0;
+  const ocePremium = userData.ocePremium || 0;
+
+  const grid = document.getElementById("badgeGrid");
+  grid.innerHTML = "";
+
+  badges.forEach(b => {
+    const unlocked = b.special ? ocePoints>0 : b.premium ? ocePremium>0 : ocePoints>=b.requirement;
+    const badgeEl = document.createElement("div");
+    badgeEl.className = `badge-card ${unlocked ? "" : "locked"} bg-black/40 rounded-3xl p-6 border border-${b.color}-400/30`;
+    badgeEl.innerHTML = `
+      <div class="w-20 h-20 mx-auto rounded-2xl bg-${b.color}-500/20 border border-${b.color}-400/40 flex items-center justify-center">
+        <div class="w-10 h-10 ${b.special?"rotate-12":b.premium?"rotate-45":""} border-2 border-${b.color}-400"></div>
+      </div>
+      <h3 class="mt-4 text-center font-semibold text-${b.color}-300">${b.name}</h3>
+      <p class="text-xs text-center text-gray-400 mt-1">${b.special?"Special Badge":b.premium?"Premium Buyer":"Admin Assigned"}</p>
+    `;
+    grid.appendChild(badgeEl);
+  });
+}
+
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    walletAddress = user.uid;
+    document.getElementById("walletStatus").innerText = walletAddress.slice(0,6) + "..." + walletAddress.slice(-4);
+    loadBadges();
+  }
+});
+
+window.addEventListener("load", connectWallet);
+</script>
+
+<script type="module" src="firebase.js"></script>
+</body>
+</html>

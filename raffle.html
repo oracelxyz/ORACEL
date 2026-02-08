@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>ORACEL – Raffle</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+body { font-family: 'Inter', sans-serif; }
+h1,h2,h3 { font-family: 'Space Grotesk', sans-serif; }
+</style>
+</head>
+
+<body class="text-white overflow-x-hidden">
+
+<!-- BG -->
+<div class="fixed inset-0 -z-10">
+  <div class="absolute inset-0 bg-gradient-to-br from-[#040817] via-[#0A1440] to-[#020617]"></div>
+  <div class="absolute inset-0 opacity-[0.25] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
+</div>
+
+<div class="flex min-h-screen">
+
+<!-- SIDEBAR -->
+<aside class="w-64 bg-black/40 backdrop-blur-xl border-r border-blue-400/20 hidden md:flex flex-col justify-between">
+  <div>
+    <div class="p-6 flex items-center gap-3">
+      <img src="logo-oracel.png" class="w-9 h-9 rounded-lg">
+      <span class="text-lg font-semibold tracking-widest text-blue-400">ORACEL</span>
+    </div>
+
+    <nav class="px-4 space-y-1 text-sm">
+      <a href="index.html" class="flex px-4 py-3 rounded-xl hover:bg-blue-500/10">Overview</a>
+      <a href="earn.html" class="flex px-4 py-3 rounded-xl hover:bg-blue-500/10">Earn</a>
+      <a href="create-mission.html" class="flex px-4 py-3 rounded-xl hover:bg-blue-500/10">Create Mission</a>
+      <a href="badge.html" class="flex px-4 py-3 rounded-xl hover:bg-blue-500/10">Badge</a>
+      <a href="leaderboard.html" class="flex px-4 py-3 rounded-xl hover:bg-blue-500/10">Leaderboard</a>
+      <a class="flex px-4 py-3 rounded-xl opacity-50">Claim (Soon)</a>
+      <a href="wallet.html" class="flex px-4 py-3 rounded-xl hover:bg-blue-500/10">Wallet</a>
+      <a href="profile.html" class="flex px-4 py-3 rounded-xl hover:bg-blue-500/10">Profile</a>
+      <a class="flex px-4 py-3 rounded-xl bg-blue-500/10 text-blue-400">Raffle</a>
+    </nav>
+  </div>
+
+  <div class="p-4 border-t border-blue-400/10">
+    <button id="logoutBtn"
+      class="w-full py-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20">
+      Logout
+    </button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="flex-1 p-6 space-y-10">
+
+<header class="flex justify-between items-center">
+  <h1 class="text-2xl font-semibold">Raffle</h1>
+  <span class="text-xs tracking-widest text-blue-300/70 uppercase">
+    Premium Mission Pool
+  </span>
+</header>
+
+<!-- POOL -->
+<section class="max-w-4xl mx-auto bg-black/40 backdrop-blur-xl rounded-3xl border border-yellow-400/30 p-8 text-center
+shadow-[0_0_70px_rgba(250,204,21,0.35)]">
+
+<p class="text-xs text-gray-400">Current Raffle Pool</p>
+<h2 id="poolSol" class="text-4xl font-bold text-yellow-300 mt-2">0 SOL</h2>
+
+<div class="mt-6 grid grid-cols-3 gap-4 text-sm">
+  <div>
+    <p class="text-gray-400">Total Tickets</p>
+    <p id="totalTickets" class="font-semibold">0</p>
+  </div>
+  <div>
+    <p class="text-gray-400">Your Tickets</p>
+    <p id="yourTickets" class="font-semibold text-blue-400">0</p>
+  </div>
+  <div>
+    <p class="text-gray-400">Participants</p>
+    <p id="participants" class="font-semibold">0</p>
+  </div>
+</div>
+</section>
+
+<!-- COUNTDOWN -->
+<section class="max-w-4xl mx-auto bg-black/30 backdrop-blur-xl rounded-3xl border border-blue-400/20 p-6 text-center">
+<p class="text-xs text-gray-400 uppercase tracking-widest">Next Draw In</p>
+
+<div id="countdown" class="flex justify-center gap-6 mt-4 text-xl font-semibold">
+  Loading...
+</div>
+
+<p class="text-xs text-gray-500 mt-4">
+  Winner will be selected automatically by system.
+</p>
+</section>
+
+<!-- WINNERS -->
+<section class="max-w-4xl mx-auto bg-black/40 backdrop-blur-xl rounded-3xl border border-blue-400/20 overflow-hidden">
+<div class="px-6 py-4 border-b border-white/10 text-sm text-gray-400 uppercase tracking-widest">
+  Recent Winners
+</div>
+
+<div id="winnerList"></div>
+</section>
+
+<section class="max-w-4xl mx-auto text-xs text-gray-400 text-center">
+Every Premium Mission purchase grants one raffle ticket.<br>
+The more tickets you have, the higher your chance to win.
+</section>
+
+</main>
+</div>
+
+<!-- 🔥 SCRIPT -->
+<script type="module">
+import { auth, db } from "./firebase.js"
+import {
+  doc, getDoc, collection, query, orderBy, limit, getDocs
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"
+
+const poolSol = document.getElementById("poolSol")
+const totalTickets = document.getElementById("totalTickets")
+const yourTickets = document.getElementById("yourTickets")
+const participants = document.getElementById("participants")
+const countdown = document.getElementById("countdown")
+const winnerList = document.getElementById("winnerList")
+
+onAuthStateChanged(auth, async user => {
+  if (!user) return location.href = "login.html"
+
+  const raffleSnap = await getDoc(doc(db,"raffle","current"))
+  const userSnap = await getDoc(doc(db,"users",user.uid))
+
+  if (raffleSnap.exists()) {
+    const r = raffleSnap.data()
+    poolSol.innerText = r.poolSol+" SOL"
+    totalTickets.innerText = r.totalTickets
+    participants.innerText = r.participants
+    startCountdown(r.drawAt.toDate())
+  }
+
+  if (userSnap.exists()) {
+    yourTickets.innerText = userSnap.data().raffleTickets || 0
+  }
+
+  loadWinners()
+})
+
+function startCountdown(target) {
+  setInterval(()=>{
+    const diff = target - new Date()
+    if (diff <= 0) {
+      countdown.innerText = "Drawing..."
+      return
+    }
+    const d = Math.floor(diff/86400000)
+    const h = Math.floor(diff%86400000/3600000)
+    const m = Math.floor(diff%3600000/60000)
+    const s = Math.floor(diff%60000/1000)
+    countdown.innerHTML = `
+      <div><span class="text-blue-400">${d}</span>d</div>
+      <div><span class="text-blue-400">${h}</span>h</div>
+      <div><span class="text-blue-400">${m}</span>m</div>
+      <div><span class="text-blue-400">${s}</span>s</div>`
+  },1000)
+}
+
+async function loadWinners() {
+  const q = query(collection(db,"raffle","winners","list"), orderBy("time","desc"), limit(5))
+  const snap = await getDocs(q)
+  winnerList.innerHTML = ""
+  snap.forEach(d=>{
+    const w = d.data()
+    winnerList.innerHTML += `
+      <div class="px-6 py-4 flex justify-between border-b border-white/5">
+        <span>${w.username}</span>
+        <span class="text-yellow-300 font-semibold">${w.amount} SOL</span>
+      </div>`
+  })
+}
+
+logoutBtn.onclick = async ()=>{
+  await signOut(auth)
+  location.href = "login.html"
+}
+</script>
+
+</body>
+</html>

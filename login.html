@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Login | ORACEL</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Font -->
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Icons -->
+<script src="https://unpkg.com/feather-icons"></script>
+
+<style>
+body { font-family: 'Inter', sans-serif; }
+h1,h2 { font-family: 'Space Grotesk', sans-serif; }
+</style>
+</head>
+
+<body class="bg-[#0B0E13] text-white min-h-screen flex items-center justify-center">
+
+<!-- BACKGROUND -->
+<div class="fixed inset-0 -z-10">
+  <div class="absolute inset-0 bg-gradient-to-br from-[#050B1A] via-[#0B1230] to-[#020617]"></div>
+  <div class="absolute inset-0 opacity-30 bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
+</div>
+
+<div class="max-w-md w-full px-6">
+
+<div class="bg-[#0F1420]/80 backdrop-blur border border-blue-500/20 rounded-2xl p-8 shadow-2xl">
+
+  <!-- LOGO -->
+  <div class="flex justify-center mb-6">
+    <img src="logo-oracel.png" alt="ORACEL" class="w-20 h-20">
+  </div>
+
+  <!-- TITLE -->
+  <h1 class="text-2xl font-bold text-center text-blue-400 mb-2">
+    ORACEL Network
+  </h1>
+  <p class="text-center text-sm text-gray-400 mb-6 leading-relaxed">
+    Decentralized social mission platform on Solana. Earn rewards, create premium missions, collect badges, compete on leaderboard.
+  </p>
+
+  <!-- UNIVERSAL SOLANA LOGIN -->
+  <button id="universalWalletLogin"
+    class="w-full flex items-center justify-center gap-3 py-3 rounded-xl
+           bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-400 hover:to-blue-400 transition font-medium mb-3">
+    <img src="https://cryptologos.cc/logos/solana-sol-logo.png" class="w-5 h-5">
+    Login with Solana Wallet
+  </button>
+
+  <div class="flex items-center gap-3 my-6 text-gray-500 text-xs">
+    <span class="flex-1 h-px bg-gray-700"></span>
+    CONNECT WITH US
+    <span class="flex-1 h-px bg-gray-700"></span>
+  </div>
+
+  <div class="flex justify-center gap-6">
+    <a href="https://x.com/oracelxyz" target="_blank" class="hover:text-blue-400 transition"><i data-feather="twitter"></i></a>
+    <a href="https://discord.gg/z452yMZWK" target="_blank" class="hover:text-blue-400 transition"><i data-feather="message-circle"></i></a>
+    <a href="https://t.me/oracelxyz" target="_blank" class="hover:text-blue-400 transition"><i data-feather="send"></i></a>
+  </div>
+
+</div>
+
+<p class="text-center text-xs text-gray-500 mt-6">
+  © 2026 ORACEL. Powered by Solana.
+</p>
+
+</div>
+
+<!-- LOGIN LOGIC -->
+<script type="module">
+import { app, auth, db } from './firebase.js';
+import { doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+feather.replace();
+
+document.getElementById("universalWalletLogin").onclick = async () => {
+  if (!window.solana) {
+    alert("No Solana wallet detected. Install Phantom, Solflare, or any Solana wallet extension.");
+    return;
+  }
+
+  try {
+    // Connect wallet
+    const resp = await window.solana.connect();
+    const walletAddress = resp.publicKey.toString();
+    console.log("Wallet connected:", walletAddress);
+
+    // Call backend to get Firebase custom token
+    const customToken = await fetch(`/api/getCustomToken?wallet=${walletAddress}`)
+      .then(res => res.text());
+
+    // Firebase login
+    await signInWithCustomToken(auth, customToken);
+
+    // Store user in Firestore if new
+    const userRef = doc(db, "users", walletAddress);
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) {
+      await setDoc(userRef, {
+        wallet: walletAddress,
+        createdAt: serverTimestamp(),
+        points: 0,
+        ocePremium: 0,
+        ocePoints: 0,
+        badges: [],
+      });
+    }
+
+    // Redirect to main page
+    window.location.href = "index.html";
+
+  } catch (err) {
+    console.error("Login failed:", err);
+    alert("Login failed. Check console for details.");
+  }
+};
+</script>
+
+<script type="module" src="firebase.js"></script>
+</body>
+</html>
